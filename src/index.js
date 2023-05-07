@@ -10,65 +10,62 @@ const divEl = document.querySelector('.country-info');
 
 inputEl.addEventListener('input', debounce(onInput, DEBOUNCE_DELAY));
 
-function onInput(e) {
-  const countryName = e.target.value.trim();
-  clearInput();
-  fetchCountries(countryName)
-    .then(data => {
-      if (data.length === 1) {
-        buildCountryMurkup(data);
-      }
+function onInput() {
+  countryInfo.innerHTML = '';
+  list.innerHTML = '';
+  const country = input.value.trim();
+  if (!country) {
+    Notify.warning('Please enter the name of the country');
+    return;
+  }
 
-      if (data.length <= 10 && data.length > 1) {
-        makeMurkup(data);
-      }
-
-      if (data.length > 10) {
-        Notiflix.Notify.info(
-          'Too many matches found. Please enter a more specific name.'
-        );
-      }
-
-      if (data.status === 404) {
-        e.target.value = '';
-        let error = new Error(data.statusText);
-        error.r = data;
-        throw error;
+  fetchCountries(country)
+    .then(country => {
+      if (country.length === 1) {
+        renderCountry(country);
+      } else {
+        renderList(country);
       }
     })
     .catch(error => {
-      console.log(error);
-      Notiflix.Notify.failure('Oops, there is no country with that name');
+      if (country.length !== 1) {
+        Notify.failure('Oops, there is no country with that name');
+      }
     });
 }
 
-function makeMurkup(countries) {
-  const murkup = countries
-    .map(country => {
-      return `<li style="display:flex; align-items:center; gap:10px">
-        <img src="${country.flags.svg}" alt="${country.flags.alt}" width=50 height=30 />
-        <p>${country.name.official}</p>
-      </li>`;
+function renderList(country) {
+  if (country.length > 10) {
+    Notify.info('Too many matches found. Please enter a more specific name.');
+    return;
+  }
+  let markup = country
+    .map(elem => {
+      return `<li>
+    <img src=${elem.flags.svg} height="20px" width="40px">
+    <p class='text'>${elem.name.official}</p>
+    </li>`;
     })
     .join('');
-
-  ulEL.insertAdjacentHTML('beforeend', murkup);
+  list.innerHTML = markup;
 }
 
-function clearInput() {
-    divEl.innerHTML = '';
-    ulEL.innerHTML = '';
+function renderCountry(country) {
+  if (country.length === 1) {
+    list.innerHTML = '';
+    const newMarkup = `
+    <div class="country-name">
+    <img src="${country[0].flags.svg}" alt="${
+      country[0].name.official
+    } height="30px" width="60px" >
+    <h1>${country[0].name.official}</h1>
+    </div>
+    <ul>
+      <li><b>Capital:</b> ${country[0].capital}</li>
+      <li><b>Population:</b> ${country[0].population}</li>
+      <li><b>Languages:</b> ${Object.values(country[0].languages)}</li>
+    </ul>
+  `;
+    countryInfo.innerHTML = newMarkup;
   }
-
-function buildCountryMurkup(oneCountry) {
-  const languagesArray = Object.values(oneCountry[0].languages);
-  const murkup = oneCountry.map(country => {
-    return `<img src ='${country.flags.svg}' width = 250px>
-  <h1>${country.name.official}</h1>
-  <p>Capital: ${country.capital}</p>
-  <p>Population: ${country.population}</p>
-  <p>Languages: ${languagesArray}</p>`;
-  });
-
-  divEl.insertAdjacentHTML('beforeend', murkup);
 }
